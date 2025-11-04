@@ -1,0 +1,37 @@
+# FastAPI and server
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+python-multipart==0.0.6
+
+# Database - Use SQLite for local development (no psycopg2 needed)
+sqlalchemy==2.0.25
+# psycopg2-binary is optional - only needed for PostgreSQL
+# Install with: pip install psycopg2-binary (if using PostgreSQL)
+alembic==1.13.1
+
+# Document Processing
+PyPDF2==3.0.1
+pdfplumber==0.10.3
+python-docx==1.1.0
+pytesseract==0.3.10
+Pillow==10.2.0
+pdf2image==1.16.3
+
+# AI/ML
+transformers==4.37.2
+torch==2.1.2
+sentencepiece==0.1.99
+spacy==3.7.2
+
+# Utilities
+pydantic==2.5.3
+pydantic-settings==2.1.0
+python-dotenv==1.0.1
+httpx==0.26.0
+
+# Testing
+pytest==7.4.4
+pytest-asyncio==0.23.3
+
+
+

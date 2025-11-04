@@ -1,0 +1,494 @@
+openapi: 3.1.0
+info:
+  title: Intelligent Resume Parser API
+  description: AI-Powered Resume Analysis & Extraction Platform by GEMINI SOLUTION
+  version: 1.0.0
+  contact:
+    name: GEMINI SOLUTION
+    email: co24529@ccet.ac.in
+
+servers:
+  - url: http://localhost:8000
+    description: Local development server
+  - url: https://api.example.com
+    description: Production server
+
+tags:
+  - name: resumes
+    description: Resume parsing and management operations
+  - name: health
+    description: Health check endpoints
+  - name: status
+    description: Processing status endpoints
+  - name: job-matching
+    description: Job matching and relevancy scoring
+
+paths:
+  /health:
+    get:
+      tags:
+        - health
+      summary: Health check endpoint
+      description: Returns the health status of the API
+      responses:
+        '200':
+          description: API is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: healthy
+
+  /api/v1/resumes/health/check:
+    get:
+      tags:
+        - health
+      summary: Detailed health check
+      description: Returns detailed health status including service information
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: healthy
+                  service:
+                    type: string
+                    example: resume-parser-api
+                  version:
+                    type: string
+                    example: "1.0.0"
+
+  /api/v1/resumes/upload:
+    post:
+      tags:
+        - resumes
+      summary: Upload and parse resume
+      description: |
+        Uploads a resume file and extracts structured information using AI.
+        Supports PDF, DOCX, TXT, and image formats (with OCR).
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Resume file (PDF, DOCX, TXT, or image)
+      responses:
+        '201':
+          description: Resume parsed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResumeResponse'
+        '400':
+          description: Bad request (invalid file or parsing failed)
+        '413':
+          description: File size exceeds limit (10MB)
+        '500':
+          description: Internal server error
+
+  /api/v1/resumes:
+    get:
+      tags:
+        - resumes
+      summary: List all resumes
+      description: Retrieves a paginated list of all parsed resumes
+      parameters:
+        - name: skip
+          in: query
+          schema:
+            type: integer
+            default: 0
+          description: Number of records to skip
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 100
+            maximum: 1000
+          description: Maximum number of records to return
+      responses:
+        '200':
+          description: List of resumes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Resume'
+
+  /api/v1/resumes/{resume_id}:
+    get:
+      tags:
+        - resumes
+      summary: Get resume by ID
+      description: Retrieves detailed information about a specific resume
+      parameters:
+        - name: resume_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Unique identifier of the resume
+      responses:
+        '200':
+          description: Resume details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Resume'
+        '404':
+          description: Resume not found
+
+    delete:
+      tags:
+        - resumes
+      summary: Delete resume
+      description: Deletes a resume and all associated data
+      parameters:
+        - name: resume_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Resume deleted successfully
+        '404':
+          description: Resume not found
+
+  /api/v1/resumes/{resume_id}/anonymized:
+    get:
+      tags:
+        - resumes
+      summary: Get anonymized resume
+      description: Returns resume data with PII removed for bias-free screening
+      parameters:
+        - name: resume_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Anonymized resume data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnonymizedResume'
+        '404':
+          description: Resume not found
+
+  /api/v1/resumes/{resume_id}/match:
+    post:
+      tags:
+        - job-matching
+      summary: Match resume to job description
+      description: |
+        AI-powered job matching with relevancy scoring.
+        Returns detailed matching scores including skill match, experience match,
+        and semantic similarity.
+      parameters:
+        - name: resume_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - job_description
+              properties:
+                job_description:
+                  type: string
+                  description: Job description text
+      responses:
+        '200':
+          description: Matching results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MatchingResult'
+        '404':
+          description: Resume not found
+
+  /api/v1/resumes/{resume_id}/status:
+    get:
+      tags:
+        - status
+      summary: Get processing status
+      description: Returns the current processing status of a resume
+      parameters:
+        - name: resume_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Processing status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProcessingStatus'
+
+  /api/v1/resumes/status/all:
+    get:
+      tags:
+        - status
+      summary: List all processing statuses
+      description: Returns processing status for all resumes
+      parameters:
+        - name: skip
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 100
+      responses:
+        '200':
+          description: List of processing statuses
+
+components:
+  schemas:
+    ResumeResponse:
+      type: object
+      required:
+        - success
+      properties:
+        success:
+          type: boolean
+          example: true
+        resume_id:
+          type: integer
+          example: 1
+        parsed_data:
+          $ref: '#/components/schemas/ParsedData'
+        confidence_score:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+          example: 87.5
+        processing_time:
+          type: number
+          format: float
+          example: 2.3
+        file_info:
+          type: object
+          properties:
+            filename:
+              type: string
+              example: resume.pdf
+            file_type:
+              type: string
+              example: application/pdf
+            file_size:
+              type: integer
+              example: 245678
+
+    ParsedData:
+      type: object
+      properties:
+        personal_info:
+          $ref: '#/components/schemas/PersonalInfo'
+        experience:
+          type: array
+          items:
+            $ref: '#/components/schemas/Experience'
+        education:
+          type: array
+          items:
+            $ref: '#/components/schemas/Education'
+        skills:
+          type: array
+          items:
+            type: string
+          example: ["Python", "FastAPI", "PostgreSQL"]
+        summary:
+          type: string
+          example: "Experienced software engineer with 5+ years..."
+        certifications:
+          type: array
+          items:
+            type: string
+        languages:
+          type: array
+          items:
+            type: string
+
+    PersonalInfo:
+      type: object
+      properties:
+        full_name:
+          type: string
+          example: "John Doe"
+        email:
+          type: string
+          format: email
+          example: "john.doe@example.com"
+        phone:
+          type: string
+          example: "+1-234-567-8900"
+        location:
+          type: string
+          example: "San Francisco, CA"
+        linkedin:
+          type: string
+          example: "linkedin.com/in/johndoe"
+        github:
+          type: string
+          example: "github.com/johndoe"
+
+    Experience:
+      type: object
+      properties:
+        title:
+          type: string
+          example: "Software Engineer"
+        company:
+          type: string
+          example: "Tech Corp Inc."
+        start_date:
+          type: string
+          format: date
+          example: "2020-01-01"
+        end_date:
+          type: string
+          format: date
+          nullable: true
+          example: null
+        current:
+          type: boolean
+          example: true
+        duration:
+          type: string
+          example: "3 years"
+        description:
+          type: string
+        achievements:
+          type: array
+          items:
+            type: string
+
+    Education:
+      type: object
+      properties:
+        degree:
+          type: string
+          example: "Bachelor of Science in Computer Science"
+        institution:
+          type: string
+          example: "University of Technology"
+        graduation_date:
+          type: string
+          format: date
+          example: "2020-05-15"
+        field:
+          type: string
+          example: "Computer Science"
+        gpa:
+          type: string
+          example: "3.8/4.0"
+        honors:
+          type: array
+          items:
+            type: string
+
+    Resume:
+      allOf:
+        - $ref: '#/components/schemas/ResumeResponse'
+        - type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            created_at:
+              type: string
+              format: date-time
+            updated_at:
+              type: string
+              format: date-time
+
+    AnonymizedResume:
+      type: object
+      description: Resume data with PII removed
+      properties:
+        resume_id:
+          type: integer
+        anonymized_data:
+          $ref: '#/components/schemas/ParsedData'
+        anonymization_report:
+          type: object
+          properties:
+            pii_detected:
+              type: object
+            anonymization_applied:
+              type: boolean
+            removed_items_count:
+              type: integer
+
+    MatchingResult:
+      type: object
+      properties:
+        resume_id:
+          type: integer
+        matching_results:
+          type: object
+          properties:
+            overall_score:
+              type: number
+              format: float
+              minimum: 0
+              maximum: 100
+            skill_match:
+              type: number
+              format: float
+            experience_match:
+              type: number
+              format: float
+            education_match:
+              type: number
+              format: float
+            semantic_similarity:
+              type: number
+              format: float
+        match_summary:
+          type: string
+
+    ProcessingStatus:
+      type: object
+      properties:
+        resume_id:
+          type: integer
+        status:
+          type: string
+          enum: [pending, processing, completed, failed]
+        progress:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+        message:
+          type: string
+

@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resume Parser - Dashboard</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <link rel="stylesheet" href="/static/dashboard.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Theme Toggle -->
+        <div class="theme-toggle-container">
+            <button class="theme-toggle" id="themeToggle" title="Toggle Light/Dark Mode">
+                <i class="fas fa-moon" id="themeIcon"></i>
+            </button>
+        </div>
+
+        <!-- Hero Section -->
+        <section class="hero-section">
+            <div class="hero-content">
+                <div class="company-logo">
+                    <i class="fas fa-gem"></i>
+                    <h1 class="company-name">GEMINI SOLUTION</h1>
+                </div>
+                <p class="hero-tagline">Resume Parser Dashboard</p>
+            </div>
+            <div class="hero-particles"></div>
+        </section>
+
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">
+                    <i class="fas fa-file-alt"></i>
+                    <h1>Resume History</h1>
+                </div>
+                <div class="header-actions">
+                    <a href="/" class="btn-primary">
+                        <i class="fas fa-plus"></i> Parse New Resume
+                    </a>
+                    <button class="btn-secondary" id="clearHistory">
+                        <i class="fas fa-trash"></i> Clear History
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Stats Section -->
+            <section class="stats-section">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-file-alt"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="totalResumes">0</h3>
+                        <p>Total Resumes</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="avgProcessingTime">0s</h3>
+                        <p>Avg Processing Time</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="avgConfidence">0%</h3>
+                        <p>Avg Confidence</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Filter Section -->
+            <section class="filter-section">
+                <div class="filter-controls">
+                    <input type="text" id="searchInput" class="search-input" placeholder="Search by name, email, or filename...">
+                    <select id="sortSelect" class="sort-select">
+                        <option value="newest">Newest First</option>
+                        <option value="oldest">Oldest First</option>
+                        <option value="confidence">Highest Confidence</option>
+                        <option value="name">Name A-Z</option>
+                    </select>
+                </div>
+            </section>
+
+            <!-- Resumes List -->
+            <section class="resumes-section">
+                <h2>Parsed Resumes History</h2>
+                <div id="resumesList" class="resumes-list">
+                    <!-- Resumes will be loaded here -->
+                </div>
+                <div id="emptyState" class="empty-state" style="display: none;">
+                    <i class="fas fa-inbox"></i>
+                    <h3>No Resumes Found</h3>
+                    <p>Start parsing resumes to see them here</p>
+                    <a href="/" class="btn-primary">
+                        <i class="fas fa-plus"></i> Parse Your First Resume
+                    </a>
+                </div>
+            </section>
+        </main>
+
+        <!-- Resume Detail Modal -->
+        <div id="resumeModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 id="modalTitle">Resume Details</h2>
+                    <button class="modal-close" id="closeModal">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body" id="modalBody">
+                    <!-- Resume details will be loaded here -->
+                </div>
+            </div>
+        </div>
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>GEMINI SOLUTION</h3>
+                    <p>Intelligent Resume Parser API v1.0.0</p>
+                    <p>Powered by FastAPI & AI/ML</p>
+                </div>
+                <div class="footer-section">
+                    <h3>Developer Information</h3>
+                    <p><strong>Name:</strong> JAYANT SHARMA</p>
+                    <p><strong>Roll No:</strong> CO24529</p>
+                    <p><strong>Email:</strong> <a href="mailto:co24529@ccet.ac.in">co24529@ccet.ac.in</a></p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 Gemini Solution. All rights reserved.</p>
+            </div>
+        </footer>
+    </div>
+
+    <script src="/static/theme.js"></script>
+    <script src="/static/dashboard.js"></script>
+</body>
+</html>
+

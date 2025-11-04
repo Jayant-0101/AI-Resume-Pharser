@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Intelligent Resume Parser</title>
+    <link rel="stylesheet" href="/static/styles.css?v=2.0">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Theme Toggle -->
+        <div class="theme-toggle-container">
+            <button class="theme-toggle" id="themeToggle" title="Toggle Light/Dark Mode">
+                <i class="fas fa-moon" id="themeIcon"></i>
+            </button>
+        </div>
+
+        <!-- Hero Section -->
+        <section class="hero-section">
+            <div class="hero-content">
+                <div class="company-logo">
+                    <i class="fas fa-gem"></i>
+                    <h1 class="company-name">GEMINI SOLUTION</h1>
+                </div>
+                <p class="hero-tagline">AI-Powered Resume Analysis & Extraction Platform</p>
+                <p class="hero-description">Transform unstructured resumes into structured data with advanced AI technology</p>
+            </div>
+            <div class="hero-particles"></div>
+        </section>
+
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">
+                    <i class="fas fa-file-alt"></i>
+                    <h1>Resume Parser</h1>
+                </div>
+                <p class="tagline">Intelligent Resume Processing System</p>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Upload Section -->
+            <section class="upload-section" id="uploadSection">
+                <div class="upload-card">
+                    <div class="upload-icon">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                    </div>
+                    <h2>Upload Your Resume</h2>
+                    <p class="upload-description">
+                        Upload your resume in PDF, DOCX, or TXT format. 
+                        Our AI will extract and structure all the information.
+                    </p>
+                    
+                    <form id="uploadForm" class="upload-form">
+                        <div class="file-input-wrapper">
+                            <input type="file" id="fileInput" accept=".pdf,.doc,.docx,.txt" required>
+                            <label for="fileInput" class="file-label">
+                                <i class="fas fa-paperclip"></i>
+                                <span class="file-text">Choose a file or drag it here</span>
+                                <span class="file-types">PDF, DOCX, TXT (Max 5MB)</span>
+                            </label>
+                        </div>
+                        
+                        <div class="file-info" id="fileInfo" style="display: none;">
+                            <div class="file-details">
+                                <i class="fas fa-file"></i>
+                                <div>
+                                    <span class="file-name" id="fileName"></span>
+                                    <span class="file-size" id="fileSize"></span>
+                                </div>
+                                <button type="button" class="remove-file" id="removeFile">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="upload-btn" id="uploadBtn">
+                            <span class="btn-text">Parse Resume</span>
+                            <i class="fas fa-spinner fa-spin btn-spinner" style="display: none;"></i>
+                        </button>
+                    </form>
+
+                    <div class="supported-formats">
+                        <h3>Supported Formats</h3>
+                        <div class="format-badges">
+                            <span class="badge"><i class="fas fa-file-pdf"></i> PDF</span>
+                            <span class="badge"><i class="fas fa-file-word"></i> DOCX</span>
+                            <span class="badge"><i class="fas fa-file-alt"></i> TXT</span>
+                            <span class="badge"><i class="fas fa-image"></i> Images (OCR)</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Loading Section -->
+            <section class="loading-section" id="loadingSection" style="display: none;">
+                <div class="loading-card">
+                    <div class="spinner"></div>
+                    <h3 id="loadingStatus">Uploading Resume...</h3>
+                    <p id="loadingStage">Preparing document for processing</p>
+                    <div class="progress-container">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressFill">
+                                <div class="progress-shine"></div>
+                                <div class="progress-glow"></div>
+                            </div>
+                            <div class="progress-percentage" id="progressPercentage">0%</div>
+                        </div>
+                        <div class="progress-stages">
+                            <div class="stage active" id="stage1">
+                                <div class="stage-icon"><i class="fas fa-upload"></i></div>
+                                <span>Upload</span>
+                            </div>
+                            <div class="stage" id="stage2">
+                                <div class="stage-icon"><i class="fas fa-file-alt"></i></div>
+                                <span>Extract</span>
+                            </div>
+                            <div class="stage" id="stage3">
+                                <div class="stage-icon"><i class="fas fa-brain"></i></div>
+                                <span>Analyze</span>
+                            </div>
+                            <div class="stage" id="stage4">
+                                <div class="stage-icon"><i class="fas fa-check"></i></div>
+                                <span>Complete</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Results Section -->
+            <section class="results-section" id="resultsSection" style="display: none;">
+                <div class="results-header">
+                    <h2><i class="fas fa-check-circle"></i> Resume Parsed Successfully</h2>
+                    <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                        <button class="btn-secondary" id="parseAnother">
+                            <i class="fas fa-plus"></i> Parse Another
+                        </button>
+                        <a href="/dashboard" class="btn-secondary">
+                            <i class="fas fa-history"></i> View History
+                        </a>
+                    </div>
+                </div>
+
+                <div class="results-grid">
+                    <!-- Personal Information -->
+                    <div class="result-card personal-info">
+                        <div class="card-header">
+                            <i class="fas fa-user"></i>
+                            <h3>Personal Information</h3>
+                        </div>
+                        <div class="card-content" id="personalInfo"></div>
+                    </div>
+
+                    <!-- Experience -->
+                    <div class="result-card experience">
+                        <div class="card-header">
+                            <i class="fas fa-briefcase"></i>
+                            <h3>Experience</h3>
+                        </div>
+                        <div class="card-content" id="experience"></div>
+                    </div>
+
+                    <!-- Education -->
+                    <div class="result-card education">
+                        <div class="card-header">
+                            <i class="fas fa-graduation-cap"></i>
+                            <h3>Education</h3>
+                        </div>
+                        <div class="card-content" id="education"></div>
+                    </div>
+
+                    <!-- Skills -->
+                    <div class="result-card skills">
+                        <div class="card-header">
+                            <i class="fas fa-tools"></i>
+                            <h3>Skills</h3>
+                        </div>
+                        <div class="card-content" id="skills"></div>
+                    </div>
+
+                    <!-- Summary -->
+                    <div class="result-card summary">
+                        <div class="card-header">
+                            <i class="fas fa-file-alt"></i>
+                            <h3>Summary</h3>
+                        </div>
+                        <div class="card-content" id="summary"></div>
+                    </div>
+
+                    <!-- Metadata -->
+                    <div class="result-card metadata">
+                        <div class="card-header">
+                            <i class="fas fa-info-circle"></i>
+                            <h3>Processing Info</h3>
+                        </div>
+                        <div class="card-content" id="metadata"></div>
+                    </div>
+                </div>
+
+                <!-- Raw JSON View -->
+                <div class="raw-data-section">
+                    <button class="toggle-raw" id="toggleRaw">
+                        <i class="fas fa-code"></i> View Raw JSON
+                    </button>
+                    <pre class="raw-json" id="rawJson" style="display: none;"></pre>
+                </div>
+            </section>
+
+            <!-- Error Section -->
+            <section class="error-section" id="errorSection" style="display: none;">
+                <div class="error-card">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <h3>Error Processing Resume</h3>
+                    <p id="errorMessage"></p>
+                    <button class="btn-secondary" id="tryAgain">Try Again</button>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>GEMINI SOLUTION</h3>
+                    <p>Intelligent Resume Parser API v1.0.0</p>
+                    <p>Powered by FastAPI & AI/ML</p>
+                </div>
+                <div class="footer-section">
+                    <h3>Developer Information</h3>
+                    <p><strong>Name:</strong> JAYANT SHARMA</p>
+                    <p><strong>Roll No:</strong> CO24529</p>
+                    <p><strong>Email:</strong> <a href="mailto:co24529@ccet.ac.in">co24529@ccet.ac.in</a></p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 Gemini Solution. All rights reserved.</p>
+            </div>
+        </footer>
+    </div>
+
+    <script src="/static/theme.js"></script>
+    <script src="/static/script.js"></script>
+</body>
+</html>
+
+
+

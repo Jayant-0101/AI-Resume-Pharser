@@ -1,0 +1,25 @@
+# Minimal requirements for local development
+# These packages have pre-built wheels and work on Windows
+
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+python-multipart>=0.0.6
+sqlalchemy>=2.0.0
+pydantic>=2.5.0
+pydantic-settings>=2.1.0
+python-dotenv>=1.0.0
+
+# Document processing (essential)
+PyPDF2>=3.0.0
+python-docx>=1.1.0
+
+# Optional - can be installed later
+# pdfplumber>=0.10.0
+# pytesseract>=0.3.10
+# Pillow>=10.0.0
+# transformers>=4.30.0
+# torch>=2.0.0
+# sentence-transformers>=2.2.0
+# Note: spaCy removed - using transformer-based NER models instead (see NLP_UPGRADE.md)
+
+
