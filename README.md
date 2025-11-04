@@ -1,6 +1,8 @@
 DOCKER AND DOCS AND TEST FILE IS MAIN BRANCH IT SELF AND REST THERE IS README FILE IN MASTER BRANCH GO THROUGH IT ONCE FOR COMPLETE SETUP AND SETUP.SH FILE IS ALSO AVILABLE IN MASTER BRANCH ITSLEF
  link for the resumes used in videos-https://drive.google.com/drive/folders/1xkV_OCH2Rpdc24wHHWUqZpTqAvklZtIB?usp=sharing
 
+LINK FOR VIDEO TUTORIAL AND WALKTHROUGH-https://drive.google.com/file/d/1PDv4yp3-LqbtD4w9j57D7HSafXnCVNm2/view?usp=sharing
+
 
 
 
@@ -423,5 +425,6 @@ This project is part of GEMINI SOLUTION.
 
 **Last Updated:** 2024  
 **Version:** 1.0.0
+
 
 
