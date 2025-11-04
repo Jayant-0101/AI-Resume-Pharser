@@ -1,3 +1,10 @@
+DOCKER AND DOCS AND TEST FILE IS MAIN BRANCH IT SELF AND REST THERE IS README FILE IN MASTER BRANCH GO THROUGH IT ONCE FOR COMPLETE SETUP AND SETUP.SH FILE IS ALSO AVILABLE IN MASTER BRANCH ITSLEF
+
+
+
+
+
+
 # Intelligent Resume Parser - Step-by-Step Setup Guide
 
 **AI-Powered Resume Analysis & Extraction Platform by GEMINI SOLUTION**
@@ -416,3 +423,4 @@ This project is part of GEMINI SOLUTION.
 
 **Last Updated:** 2024  
 **Version:** 1.0.0
+
