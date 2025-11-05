@@ -3,6 +3,8 @@ DOCKER AND DOCS AND TEST FILE IS MAIN BRANCH IT SELF AND REST THERE IS README FI
 
 LINK FOR VIDEO TUTORIAL AND WALKTHROUGH-https://drive.google.com/file/d/1PDv4yp3-LqbtD4w9j57D7HSafXnCVNm2/view?usp=sharing
 
+Link for PPT  https://www.canva.com/design/DAG3xJq7CoM/lO9HHpYPIfuACzki6NP04g/edit?utm_content=DAG3xJq7CoM&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton
+
 
 
 
@@ -425,6 +427,7 @@ This project is part of GEMINI SOLUTION.
 
 **Last Updated:** 2024  
 **Version:** 1.0.0
+
 
 
 
