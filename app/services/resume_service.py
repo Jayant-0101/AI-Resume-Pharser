@@ -220,7 +220,15 @@ class ResumeService:
             confidence = parsed_data.get("confidence_score", 0.0)
             if confidence is None:
                 confidence = 0.0
-            confidence = float(confidence)
+            elif isinstance(confidence, str):
+                import re
+                match = re.search(r"[-+]?\d*\.?\d+", confidence)
+                confidence = float(match.group()) if match else 0.0
+            else:
+                try:
+                    confidence = float(confidence)
+                except (ValueError, TypeError):
+                    confidence = 0.0
             
             # Ensure processing_time is a valid number
             if final_processing_time is None:

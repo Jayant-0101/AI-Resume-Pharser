@@ -270,13 +270,28 @@ class ResponseFormatter:
             if isinstance(honors, str):
                 honors = [honors]
             
+            # Safely extract GPA / percentage / marks as a float
+            raw_gpa = edu.get("gpa")
+            parsed_gpa = None
+            if raw_gpa is not None:
+                if isinstance(raw_gpa, (int, float)):
+                    parsed_gpa = float(raw_gpa)
+                elif isinstance(raw_gpa, str):
+                    import re
+                    match = re.search(r"[-+]?\d*\.?\d+", raw_gpa)
+                    if match:
+                        try:
+                            parsed_gpa = float(match.group())
+                        except ValueError:
+                            parsed_gpa = None
+
             formatted_edu = {
                 "degree": edu.get("degree", ""),
                 "field": edu.get("field"),
                 "institution": edu.get("institution"),
                 "location": None,  # Could be extracted from institution name
                 "graduationDate": graduation_date.isoformat() if graduation_date else None,
-                "gpa": float(edu.get("gpa")) if edu.get("gpa") else None,
+                "gpa": parsed_gpa,
                 "honors": honors
             }
             
