@@ -3,71 +3,25 @@ Main FastAPI application entry point
 """
 import logging
 import traceback
+import os
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
-from app.api.v1 import router as api_router
-from app.core.config import settings
-from app.core.logging_config import setup_logging
-from app.db.database import engine, Base
 
-# Setup logging
-setup_logging()
+# Setup basic logging immediately
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Create database tables (with error handling, non-blocking)
-try:
-    Base.metadata.create_all(bind=engine)
-    logger.info("Database tables created/verified successfully")
-except Exception as e:
-    logger.warning(f"Could not create database tables: {str(e)} — continuing anyway")
-
+# --- Create app FIRST before anything else ---
 app = FastAPI(
-    title="Intelligent Resume Parser API",
-    description="AI-powered resume parsing system with multi-format support",
+    title="AI Resume Parser API",
+    description="AI-powered resume parsing with Google Gemini",
     version="1.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
-    openapi_url="/openapi.json"
 )
 
-# Global exception handler — returns JSON instead of Vercel's 500 page
-@app.exception_handler(Exception)
-async def global_exception_handler(request: Request, exc: Exception):
-    logger.error(f"Unhandled exception: {traceback.format_exc()}")
-    return JSONResponse(
-        status_code=500,
-        content={"error": str(exc), "type": type(exc).__name__}
-    )
-
-# Debug ping — always works, confirms function is alive
-@app.get("/ping")
-async def ping():
-    import os
-    return {
-        "status": "alive",
-        "db_url_set": bool(os.environ.get("DATABASE_URL")),
-        "gemini_key_set": bool(os.environ.get("GEMINI_API_KEY")),
-    }
-
-# Mount static files
-try:
-    app.mount("/static", StaticFiles(directory="static"), name="static")
-except Exception as e:
-    logger.warning(f"Could not mount static files: {e}")
-
-# Serve dashboard page
-@app.get("/dashboard")
-async def dashboard():
-    """Serve the dashboard page"""
-    try:
-        return FileResponse("static/dashboard.html")
-    except Exception as e:
-        logger.error(f"Error serving dashboard: {e}")
-        return {"error": "Dashboard not available"}
-
-# CORS middleware
+# CORS — add immediately after app creation
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -76,32 +30,89 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include API routes
-app.include_router(api_router, prefix="/api/v1")
+# Global exception handler
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.error(f"Unhandled exception on {request.url}: {traceback.format_exc()}")
+    return JSONResponse(
+        status_code=500,
+        content={"error": str(exc), "type": type(exc).__name__}
+    )
 
-
-@app.get("/", response_class=FileResponse)
-async def root():
-    """Root endpoint - serve web interface"""
-    import os
-    static_path = os.path.join("static", "index.html")
-    if os.path.exists(static_path):
-        return FileResponse(static_path)
-    else:
-        # Fallback to JSON if static files not available
-        from fastapi.responses import JSONResponse
-        return JSONResponse({
-            "message": "Intelligent Resume Parser API",
-            "version": "1.0.0",
-            "docs": "/docs",
-            "health": "/api/v1/health",
-            "web_interface": "/static/index.html",
-            "note": "Static files not found. Check if static/index.html exists."
-        })
-
+# --- Simple health/ping routes (always available) ---
+@app.get("/ping")
+async def ping():
+    return {
+        "status": "alive",
+        "db_url_set": bool(os.environ.get("DATABASE_URL")),
+        "gemini_key_set": bool(os.environ.get("GEMINI_API_KEY")),
+        "python_path": os.getcwd(),
+    }
 
 @app.get("/health")
-async def health_check():
-    """Health check endpoint"""
+async def health():
     return {"status": "healthy"}
 
+# --- Now load heavier dependencies (guarded) ---
+_load_errors = []
+
+# Database
+try:
+    from app.db.database import engine, Base
+    from app.core.config import settings
+    try:
+        Base.metadata.create_all(bind=engine)
+        logger.info("Database tables ready")
+    except Exception as db_err:
+        logger.warning(f"DB table creation skipped: {db_err}")
+except Exception as e:
+    _load_errors.append(f"DB init: {e}")
+    logger.error(f"DB import error: {traceback.format_exc()}")
+
+# API routes
+try:
+    from app.api.v1 import router as api_router
+    app.include_router(api_router, prefix="/api/v1")
+    logger.info("API routes loaded")
+except Exception as e:
+    _load_errors.append(f"API routes: {e}")
+    logger.error(f"API router error: {traceback.format_exc()}")
+
+# Static files
+try:
+    from fastapi.staticfiles import StaticFiles
+    static_dir = os.path.join(os.path.dirname(__file__), "..", "static")
+    if os.path.isdir(static_dir):
+        app.mount("/static", StaticFiles(directory=static_dir), name="static")
+        logger.info("Static files mounted")
+    else:
+        logger.warning(f"Static dir not found: {static_dir}")
+except Exception as e:
+    _load_errors.append(f"Static files: {e}")
+    logger.warning(f"Static mount error: {e}")
+
+
+@app.get("/")
+async def root():
+    """Serve UI or API info"""
+    static_path = os.path.join(os.path.dirname(__file__), "..", "static", "index.html")
+    if os.path.exists(static_path):
+        return FileResponse(static_path)
+    return JSONResponse({
+        "message": "AI Resume Parser API is running",
+        "docs": "/docs",
+        "health": "/health",
+        "ping": "/ping",
+        "load_errors": _load_errors,
+    })
+
+
+@app.get("/debug")
+async def debug():
+    """Show load errors for debugging"""
+    return {
+        "load_errors": _load_errors,
+        "cwd": os.getcwd(),
+        "db_url_set": bool(os.environ.get("DATABASE_URL")),
+        "gemini_key_set": bool(os.environ.get("GEMINI_API_KEY")),
+    }
