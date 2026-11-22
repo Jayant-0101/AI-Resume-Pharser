@@ -3,7 +3,7 @@ Resume processing service with enhanced features
 """
 import time
 import logging
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from datetime import datetime
 from sqlalchemy.orm import Session
 from app.services.document_processor import DocumentProcessor, MAX_FILE_SIZE
