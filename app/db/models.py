@@ -12,7 +12,7 @@ class Resume(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     filename = Column(String(255), nullable=False)
-    file_type = Column(String(50), nullable=False)
+    file_type = Column(String(255), nullable=False)
     file_size = Column(Integer, nullable=False)
     upload_date = Column(DateTime(timezone=True), server_default=func.now())
     
@@ -23,7 +23,7 @@ class Resume(Base):
     
     # Metadata
     processing_time = Column(Float, nullable=True)
-    status = Column(String(50), default="pending")
+    status = Column(String(100), default="pending")
 
 
 class ParsedResumeData(Base):
