@@ -9,11 +9,62 @@ Disclaimer !!!- Please download sapacy for better results
 
 
 
-# Intelligent Resume Parser - Step-by-Step Setup Guide
+# Intelligent Resume Parser - Google Gemini & Supabase Edition
 
 **AI-Powered Resume Analysis & Extraction Platform by GEMINI SOLUTION**
 
-This guide will walk you through setting up and running the Resume Parser application on your computer.
+An advanced, cloud-native resume parsing, ATS auditing, and career intelligence system powered by **Google Gemini AI** and **Supabase (PostgreSQL)**, deployable to **Vercel** in minutes.
+
+---
+
+## 🚀 Key Features
+
+- **⚡ Google Gemini AI Core**: High-accuracy structured data extraction (Contact, Summary, Experience with bullet achievements, Categorized Skills, Education, Projects, and Certifications).
+- **🎯 Real-Time ATS Audit Engine (0-100)**: Evaluates layout/formatting, quantified business impact, keyword density, and action verb strength with red flags and actionable recommendations.
+- **💼 Semantic Job Match & Gap Analyzer**: Compares candidate resumes with target Job Descriptions, identifies missing skills, and generates tailored interview prep questions.
+- **✨ Google XYZ / STAR Bullet Polisher**: Rewrites weak bullet points into high-impact achievements (*"Accomplished [X] as measured by [Y], by doing [Z]"*).
+- **📝 AI Tailored Cover Letter Generator**: Synthesizes profile history into customized, role-specific cover letters.
+- **🐘 Supabase (PostgreSQL) Persistence**: Relational storage for resumes and parsed candidate data.
+- **☁️ Vercel Serverless Ready**: Lightweight architecture (<50MB, no 2GB PyTorch dependencies needed).
+
+---
+
+## 🛠️ Quick Local Setup
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/Jayant-0101/AI-Resume-Pharser.git
+   cd AI-Resume-Pharser
+   ```
+
+2. **Configure Environment Variables:**
+   ```bash
+   cp .env.example .env
+   ```
+   Add your keys in `.env`:
+   ```ini
+   GEMINI_API_KEY=your_gemini_api_key_here
+   GEMINI_MODEL=gemini-3.5-flash
+   DATABASE_URL=postgresql+psycopg2://postgres:YOUR_PASSWORD@db.xjmdsujpznoetmnonypr.supabase.co:5432/postgres
+   ```
+
+3. **Install Requirements & Launch:**
+   ```bash
+   python3 -m pip install -r requirements-minimal.txt
+   uvicorn app.main:app --reload --port 8000
+   ```
+   Open `http://localhost:8000` in your browser.
+
+---
+
+## 🌐 Deploy to Vercel
+
+1. Import this repository into [Vercel](https://vercel.com).
+2. Set the following **Environment Variables** in Vercel:
+   - `GEMINI_API_KEY`
+   - `GEMINI_MODEL` (`gemini-3.5-flash`)
+   - `DATABASE_URL` (Supabase connection string)
+3. Deploy! Vercel uses `vercel.json` and `api/index.py` automatically.
 
 ---
 
