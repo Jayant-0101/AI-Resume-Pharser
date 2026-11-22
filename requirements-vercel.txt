@@ -8,6 +8,7 @@ sqlalchemy>=2.0.0
 pydantic>=2.5.0
 pydantic-settings>=2.1.0
 python-dotenv>=1.0.0
+psycopg2-binary>=2.9.9
 
 # Document text extraction (lightweight)
 PyPDF2>=3.0.0
