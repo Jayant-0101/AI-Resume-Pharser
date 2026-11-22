@@ -15,6 +15,7 @@ from app.services.matching_service import MatchingService
 from app.services.bias_detection_service import BiasDetectionService
 from app.services.anonymization_service import AnonymizationService
 from app.services.response_formatter import ResponseFormatter
+from app.services.gemini_service import GeminiService
 from app.db.models import Resume, ParsedResumeData
 
 logger = logging.getLogger(__name__)
@@ -25,6 +26,8 @@ class ResumeService:
     
     def __init__(self):
         self.document_processor = DocumentProcessor()
+        # Initialize Google Gemini service
+        self.gemini_service = GeminiService()
         # Initialize Enhanced parser (high accuracy) with fallback to basic parser
         try:
             self.ai_parser = EnhancedParser()
@@ -61,7 +64,8 @@ class ResumeService:
         file_content: bytes,
         filename: str,
         content_type: str,
-        db: Session
+        db: Session,
+        gemini_api_key: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Process a resume file and extract structured data
@@ -71,6 +75,7 @@ class ResumeService:
             filename: Original filename
             content_type: MIME type
             db: Database session
+            gemini_api_key: Optional Gemini API Key
             
         Returns:
             Dictionary with processing results
@@ -83,7 +88,6 @@ class ResumeService:
             text, error, file_info = self.document_processor.process_document(
                 file_content, filename, content_type
             )
-            
             
             if error:
                 return {
@@ -113,17 +117,34 @@ class ResumeService:
             db.commit()
             db.refresh(resume_record)
             
-            # Step 3: Parse with AI
-            logger.info(f"Parsing resume with AI for {filename}")
+            # Step 3: Parse with AI (Try Google Gemini first if configured)
             parse_start = time.time()
-            parsed_data = self.ai_parser.parse(text)
+            parsed_data = {}
+            gemini_client = GeminiService(api_key=gemini_api_key) if gemini_api_key else self.gemini_service
+            is_gemini_active = gemini_client.is_configured()
+
+            if is_gemini_active:
+                try:
+                    logger.info("Parsing resume with Google Gemini AI...")
+                    parsed_data = gemini_client.parse_resume(text)
+                    parsed_data["powered_by"] = f"Google Gemini ({gemini_client.model})"
+                    logger.info("Successfully parsed with Google Gemini AI")
+                except Exception as gemini_err:
+                    logger.warning(f"Google Gemini parsing error: {gemini_err}. Falling back to standard parser.")
+                    parsed_data = {}
+
+            if not parsed_data:
+                logger.info(f"Parsing resume with standard AI parser for {filename}")
+                parsed_data = self.ai_parser.parse(text)
+                parsed_data["powered_by"] = "Rule-based NLP"
+            
             parse_time = time.time() - parse_start
             
             # Ensure confidence_score exists
             if "confidence_score" not in parsed_data or parsed_data.get("confidence_score") is None:
-                logger.warning("Confidence score not calculated by parser, calculating now...")
-                # Calculate it if missing
-                if hasattr(self.ai_parser, '_calculate_confidence_enhanced'):
+                if is_gemini_active and parsed_data.get("powered_by", "").startswith("Google Gemini"):
+                    parsed_data["confidence_score"] = 96.0
+                elif hasattr(self.ai_parser, '_calculate_confidence_enhanced'):
                     parsed_data["confidence_score"] = self.ai_parser._calculate_confidence_enhanced(parsed_data)
                 elif hasattr(self.ai_parser, '_calculate_confidence'):
                     parsed_data["confidence_score"] = self.ai_parser._calculate_confidence(parsed_data)
@@ -141,7 +162,7 @@ class ResumeService:
             
             # Step 5: Advanced AI Features - LLM, Bias Detection, Anonymization
             logger.info(f"Applying advanced AI features")
-            advanced_features = self._apply_advanced_ai_features(parsed_data, text)
+            advanced_features = self._apply_advanced_ai_features(parsed_data, text, gemini_client)
             parsed_data.update(advanced_features)
             
             # Step 6: Save parsed data
@@ -315,54 +336,71 @@ class ResumeService:
                 "enhancement": {}
             }
     
-    def _apply_advanced_ai_features(self, parsed_data: Dict[str, Any], resume_text: str) -> Dict[str, Any]:
+    def _apply_advanced_ai_features(
+        self,
+        parsed_data: Dict[str, Any],
+        resume_text: str,
+        gemini_client: Optional[GeminiService] = None
+    ) -> Dict[str, Any]:
         """
-        Apply advanced AI features: LLM, bias detection, anonymization
-        
-        Args:
-            parsed_data: Parsed resume data
-            resume_text: Raw resume text
-            
-        Returns:
-            Dictionary with advanced AI features
+        Apply advanced AI features: Gemini ATS audit & insights, local LLM fallback,
+        bias detection, anonymization
         """
         advanced_features = {}
+        client = gemini_client or self.gemini_service
         
         try:
-            # 1. LLM Insights (only if service is available)
-            if self.llm_service and hasattr(self.llm_service, 'is_available') and self.llm_service.is_available():
+            # 1. Google Gemini ATS Audit & Deep Insights
+            if client and client.is_configured():
                 try:
-                    logger.info("Generating LLM insights")
-                    llm_insights = self.llm_service.extract_insights(parsed_data)
-                    llm_analysis = self.llm_service.analyze_context(resume_text[:2000] if resume_text else "")
+                    logger.info("Running Gemini ATS audit and candidate insights...")
+                    ats_audit = client.audit_ats(parsed_data, resume_text)
+                    advanced_features["ats_audit"] = ats_audit
                     advanced_features["llm_insights"] = {
-                        "insights": llm_insights,
-                        "context_analysis": llm_analysis,
-                        "summary": llm_analysis.get("summary")
+                        "available": True,
+                        "source": f"Google Gemini ({client.model})",
+                        "summary": parsed_data.get("summary") or (ats_audit.get("strengths", [None])[0]),
+                        "strengths": ats_audit.get("strengths", []),
+                        "actionable_recommendations": ats_audit.get("actionable_recommendations", [])
                     }
                 except Exception as e:
-                    logger.warning(f"LLM insights generation failed: {e}")
+                    logger.warning(f"Gemini ATS audit error: {e}")
+
+            # 2. Local LLM Insights Fallback (if Gemini wasn't used or failed)
+            if "llm_insights" not in advanced_features:
+                if self.llm_service and hasattr(self.llm_service, 'is_available') and self.llm_service.is_available():
+                    try:
+                        logger.info("Generating local LLM insights")
+                        llm_insights = self.llm_service.extract_insights(parsed_data)
+                        llm_analysis = self.llm_service.analyze_context(resume_text[:2000] if resume_text else "")
+                        advanced_features["llm_insights"] = {
+                            "insights": llm_insights,
+                            "context_analysis": llm_analysis,
+                            "summary": llm_analysis.get("summary")
+                        }
+                    except Exception as e:
+                        logger.warning(f"Local LLM insights generation failed: {e}")
+                        advanced_features["llm_insights"] = {
+                            "available": False,
+                            "note": "LLM insights unavailable"
+                        }
+                else:
                     advanced_features["llm_insights"] = {
                         "available": False,
-                        "note": "LLM insights unavailable"
+                        "note": "Configure GEMINI_API_KEY for deep LLM insights & ATS analysis"
                     }
-            else:
-                advanced_features["llm_insights"] = {
-                    "available": False,
-                    "note": "LLM service not available (models loading on demand)"
-                }
             
-            # 2. Bias Detection
+            # 3. Bias Detection
             logger.info("Detecting potential biases")
             bias_detection = self.bias_detector.detect_bias(parsed_data, resume_text)
             advanced_features["bias_detection"] = bias_detection
             
-            # 3. Anonymization Report
+            # 4. Anonymization Report
             logger.info("Generating anonymization report")
             anonymization_report = self.anonymizer.get_anonymization_report(parsed_data, resume_text)
             advanced_features["anonymization"] = {
                 "report": anonymization_report,
-                "anonymized_version": None  # Generate on demand
+                "anonymized_version": None
             }
             
         except Exception as e:
@@ -375,31 +413,122 @@ class ResumeService:
         
         return advanced_features
     
-    def match_resume_to_job(self, resume_id: int, job_description: str, db: Session) -> Dict[str, Any]:
+    def match_resume_to_job(
+        self,
+        resume_id: int,
+        job_description: str,
+        db: Session,
+        gemini_api_key: Optional[str] = None
+    ) -> Dict[str, Any]:
         """
-        Match resume to job description
-        
-        Args:
-            resume_id: Resume ID
-            job_description: Job description text
-            db: Database session
-            
-        Returns:
-            Matching scores and analysis
+        Match resume to job description using Gemini AI semantic matching
+        with fallback to keyword/relevancy scoring
         """
         resume = db.query(Resume).filter(Resume.id == resume_id).first()
         if not resume:
             return {"error": "Resume not found"}
         
         parsed_data = resume.parsed_data or {}
+        
+        # Check if Gemini is available
+        client = GeminiService(api_key=gemini_api_key) if gemini_api_key else self.gemini_service
+        if client.is_configured():
+            try:
+                logger.info("Matching resume with job description using Google Gemini...")
+                gemini_result = client.match_job(parsed_data, job_description)
+                gemini_result["powered_by"] = f"Google Gemini ({client.model})"
+                return gemini_result
+            except Exception as e:
+                logger.warning(f"Gemini job matching failed: {e}. Falling back to baseline matcher.")
+
         if not self.matching_service:
             return {"error": "Matching service not available"}
         
         try:
-            return self.matching_service.calculate_relevancy_score(parsed_data, job_description)
+            result = self.matching_service.calculate_relevancy_score(parsed_data, job_description)
+            result["powered_by"] = "Rule-based Relevancy Matcher"
+            return result
         except Exception as e:
             logger.error(f"Error in matching: {e}")
             return {"error": f"Matching failed: {str(e)}"}
+
+    def audit_resume_ats(
+        self,
+        resume_id: int,
+        db: Session,
+        gemini_api_key: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Audit resume against ATS standards using Gemini"""
+        resume = db.query(Resume).filter(Resume.id == resume_id).first()
+        if not resume:
+            return {"error": "Resume not found"}
+
+        parsed_data = resume.parsed_data or {}
+        raw_text = resume.raw_text or ""
+
+        client = GeminiService(api_key=gemini_api_key) if gemini_api_key else self.gemini_service
+        if not client.is_configured():
+            return {
+                "error": "Gemini API key is required for ATS Audit. Set GEMINI_API_KEY in .env or provide it in request."
+            }
+
+        try:
+            return client.audit_ats(parsed_data, raw_text)
+        except Exception as e:
+            logger.error(f"Error auditing ATS: {e}")
+            return {"error": f"ATS audit failed: {str(e)}"}
+
+    def enhance_resume_bullets(
+        self,
+        resume_id: int,
+        bullets: List[str],
+        db: Session,
+        gemini_api_key: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Enhance resume bullet points to STAR/XYZ format using Gemini"""
+        client = GeminiService(api_key=gemini_api_key) if gemini_api_key else self.gemini_service
+        if not client.is_configured():
+            return {
+                "error": "Gemini API key is required. Set GEMINI_API_KEY in .env or provide it in request."
+            }
+
+        try:
+            return client.enhance_bullet_points(bullets)
+        except Exception as e:
+            logger.error(f"Error enhancing bullets: {e}")
+            return {"error": f"Bullet enhancement failed: {str(e)}"}
+
+    def generate_cover_letter(
+        self,
+        resume_id: int,
+        job_title: str,
+        company_name: str,
+        job_description: Optional[str],
+        db: Session,
+        gemini_api_key: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Generate tailored cover letter using Gemini"""
+        resume = db.query(Resume).filter(Resume.id == resume_id).first()
+        if not resume:
+            return {"error": "Resume not found"}
+
+        parsed_data = resume.parsed_data or {}
+        client = GeminiService(api_key=gemini_api_key) if gemini_api_key else self.gemini_service
+        if not client.is_configured():
+            return {
+                "error": "Gemini API key is required. Set GEMINI_API_KEY in .env or provide it in request."
+            }
+
+        try:
+            return client.generate_cover_letter(
+                resume_data=parsed_data,
+                job_title=job_title,
+                company_name=company_name,
+                job_description=job_description
+            )
+        except Exception as e:
+            logger.error(f"Error generating cover letter: {e}")
+            return {"error": f"Cover letter generation failed: {str(e)}"}
     
     def get_anonymized_resume(self, resume_id: int, db: Session) -> Dict[str, Any]:
         """

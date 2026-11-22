@@ -2,12 +2,13 @@
 Resume API endpoints
 """
 import logging
-from typing import List
-from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, status, Body
+from typing import List, Optional
+from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, status, Body, Header
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.services.resume_service import ResumeService
+from app.services.gemini_service import GeminiService
 from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
@@ -50,9 +51,20 @@ class ResumeResponse(BaseModel):
         extra = "allow"  # Allow extra fields
 
 
+class BulletEnhanceRequest(BaseModel):
+    bullets: List[str]
+
+
+class CoverLetterRequest(BaseModel):
+    job_title: str
+    company_name: str
+    job_description: Optional[str] = None
+
+
 @router.post("/upload", response_model=ResumeResponse, status_code=status.HTTP_201_CREATED)
 async def upload_resume(
     file: UploadFile = File(...),
+    x_gemini_api_key: Optional[str] = Header(None, alias="X-Gemini-API-Key"),
     db: Session = Depends(get_db)
 ):
     """
@@ -82,7 +94,8 @@ async def upload_resume(
             file_content=file_content,
             filename=file.filename,
             content_type=file.content_type or "application/octet-stream",
-            db=db
+            db=db,
+            gemini_api_key=x_gemini_api_key
         )
         
         if not result.get("success"):
@@ -265,4 +278,78 @@ async def health_check():
         "service": "resume-parser-api",
         "version": "1.0.0"
     }
+
+
+@router.get("/gemini/status", status_code=status.HTTP_200_OK)
+async def gemini_status(
+    x_gemini_api_key: Optional[str] = Header(None, alias="X-Gemini-API-Key")
+):
+    """
+    Check if Google Gemini AI is configured and available
+    """
+    client = GeminiService(api_key=x_gemini_api_key)
+    is_available = client.is_configured()
+    return {
+        "configured": is_available,
+        "model": client.model,
+        "mode": "Google Gemini 2.5/1.5 Flash (Cloud Native)" if is_available else "Local Heuristic Mode",
+        "message": "Google Gemini AI is active and ready" if is_available else "No Gemini API Key found. Provide GEMINI_API_KEY in .env or via X-Gemini-API-Key header"
+    }
+
+
+@router.post("/{resume_id}/ats-audit", status_code=status.HTTP_200_OK)
+async def ats_audit(
+    resume_id: int,
+    x_gemini_api_key: Optional[str] = Header(None, alias="X-Gemini-API-Key"),
+    db: Session = Depends(get_db)
+):
+    """
+    Run an ATS (Applicant Tracking System) Audit on the resume
+    """
+    service = get_resume_service()
+    result = service.audit_resume_ats(resume_id, db, gemini_api_key=x_gemini_api_key)
+    if "error" in result:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=result["error"])
+    return result
+
+
+@router.post("/{resume_id}/enhance-bullets", status_code=status.HTTP_200_OK)
+async def enhance_bullets(
+    resume_id: int,
+    request: BulletEnhanceRequest,
+    x_gemini_api_key: Optional[str] = Header(None, alias="X-Gemini-API-Key"),
+    db: Session = Depends(get_db)
+):
+    """
+    Rewrite resume bullet points into Google XYZ / STAR format
+    """
+    service = get_resume_service()
+    result = service.enhance_resume_bullets(resume_id, request.bullets, db, gemini_api_key=x_gemini_api_key)
+    if "error" in result:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=result["error"])
+    return result
+
+
+@router.post("/{resume_id}/cover-letter", status_code=status.HTTP_200_OK)
+async def generate_cover_letter(
+    resume_id: int,
+    request: CoverLetterRequest,
+    x_gemini_api_key: Optional[str] = Header(None, alias="X-Gemini-API-Key"),
+    db: Session = Depends(get_db)
+):
+    """
+    Generate tailored cover letter based on parsed resume and target job
+    """
+    service = get_resume_service()
+    result = service.generate_cover_letter(
+        resume_id=resume_id,
+        job_title=request.job_title,
+        company_name=request.company_name,
+        job_description=request.job_description,
+        db=db,
+        gemini_api_key=x_gemini_api_key
+    )
+    if "error" in result:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=result["error"])
+    return result
 

@@ -15,6 +15,10 @@ class Settings(BaseSettings):
     MODEL_CACHE_DIR: str = "./models"
     USE_GPU: bool = False
     
+    # Google Gemini AI Configuration
+    GEMINI_API_KEY: Optional[str] = None
+    GEMINI_MODEL: str = "gemini-3.5-flash"
+    
     class Config:
         env_file = ".env"
         case_sensitive = True

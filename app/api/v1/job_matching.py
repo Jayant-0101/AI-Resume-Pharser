@@ -2,7 +2,8 @@
 Job Matching API endpoints
 """
 import logging
-from fastapi import APIRouter, HTTPException, status, Depends, Body
+from typing import Optional
+from fastapi import APIRouter, HTTPException, status, Depends, Body, Header
 from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.services.resume_service import ResumeService
@@ -34,26 +35,19 @@ class JobDescription(BaseModel):
 async def match_resume(
     resume_id: int,
     job: JobDescription,
+    x_gemini_api_key: Optional[str] = Header(None, alias="X-Gemini-API-Key"),
     db: Session = Depends(get_db)
 ):
     """
     Match a resume to a job description with AI-powered relevancy scoring
-    
-    Returns detailed matching scores including:
-    - Overall relevancy score (0-1.0)
-    - Skill matching score
-    - Experience matching score
-    - Education matching score
-    - Title matching score
-    - Semantic similarity score
-    - Detailed breakdown and recommendations
     """
     try:
         service = get_service()
         result = service.match_resume_to_job(
-            resume_id,
-            job.job_description,
-            db
+            resume_id=resume_id,
+            job_description=job.job_description,
+            db=db,
+            gemini_api_key=x_gemini_api_key
         )
         
         if "error" in result:

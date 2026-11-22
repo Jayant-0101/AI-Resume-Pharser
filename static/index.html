@@ -10,11 +10,45 @@
 </head>
 <body>
     <div class="container">
-        <!-- Theme Toggle -->
-        <div class="theme-toggle-container">
+        <!-- Top Controls: Theme & Gemini AI Status -->
+        <div class="top-controls-container">
+            <button class="api-key-btn" id="apiKeyBtn" title="Google Gemini AI Setup">
+                <i class="fas fa-brain"></i>
+                <span id="geminiStatusBadge" class="status-badge">Gemini AI</span>
+            </button>
             <button class="theme-toggle" id="themeToggle" title="Toggle Light/Dark Mode">
                 <i class="fas fa-moon" id="themeIcon"></i>
             </button>
+        </div>
+
+        <!-- Gemini API Key Modal -->
+        <div id="apiKeyModal" class="modal" style="display: none;">
+            <div class="modal-backdrop" id="modalBackdrop"></div>
+            <div class="modal-dialog">
+                <div class="modal-header">
+                    <h3><i class="fas fa-gem" style="color: #6366f1;"></i> Google Gemini AI Configuration</h3>
+                    <button class="close-modal" id="closeApiKeyModal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p style="margin-bottom: 1rem; color: var(--text-secondary);">
+                        Connect your real Google Gemini API Key to unlock deep ATS scoring, intelligent data extraction, STAR bullet rewriting, and job fit analysis.
+                    </p>
+                    <div class="input-group">
+                        <label for="geminiApiKeyInput"><strong>Google Gemini API Key</strong></label>
+                        <input type="password" id="geminiApiKeyInput" class="custom-input" placeholder="Enter AIzaSy..." />
+                    </div>
+                    <div style="margin-top: 0.5rem; font-size: 0.85rem; color: var(--text-muted);">
+                        <span>🔑 Don't have one? Get a free key at </span>
+                        <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener" style="color: var(--primary-color);">Google AI Studio</a>.
+                        <br><em>(Your key is saved locally in your browser and sent securely via headers)</em>
+                    </div>
+                    <div id="apiKeyTestResult" style="margin-top: 0.75rem;"></div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-secondary" id="clearApiKeyBtn">Clear Key</button>
+                    <button class="upload-btn" id="saveApiKeyBtn" style="padding: 0.6rem 1.4rem; font-size: 0.95rem;">Save & Verify</button>
+                </div>
+            </div>
         </div>
 
         <!-- Hero Section -->
@@ -135,8 +169,13 @@
             <!-- Results Section -->
             <section class="results-section" id="resultsSection" style="display: none;">
                 <div class="results-header">
-                    <h2><i class="fas fa-check-circle"></i> Resume Parsed Successfully</h2>
-                    <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                    <div>
+                        <h2><i class="fas fa-check-circle" style="color: var(--success-color);"></i> Resume Parsed Successfully</h2>
+                        <div id="aiEngineBadge" class="ai-engine-badge">
+                            <i class="fas fa-microchip"></i> Engine: <span id="engineNameText">Google Gemini AI</span>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
                         <button class="btn-secondary" id="parseAnother">
                             <i class="fas fa-plus"></i> Parse Another
                         </button>
@@ -146,59 +185,233 @@
                     </div>
                 </div>
 
-                <div class="results-grid">
-                    <!-- Personal Information -->
-                    <div class="result-card personal-info">
-                        <div class="card-header">
-                            <i class="fas fa-user"></i>
-                            <h3>Personal Information</h3>
-                        </div>
-                        <div class="card-content" id="personalInfo"></div>
-                    </div>
+                <!-- Navigation Tabs for AI Features -->
+                <div class="tabs-nav" id="resultsTabs">
+                    <button class="tab-button active" data-tab="tab-overview">
+                        <i class="fas fa-user-circle"></i> Parsed Profile
+                    </button>
+                    <button class="tab-button" data-tab="tab-ats">
+                        <i class="fas fa-chart-line"></i> ATS Score & Audit
+                    </button>
+                    <button class="tab-button" data-tab="tab-job-match">
+                        <i class="fas fa-bullseye"></i> Job Match & Gap
+                    </button>
+                    <button class="tab-button" data-tab="tab-bullets">
+                        <i class="fas fa-magic"></i> STAR Bullet Polisher
+                    </button>
+                    <button class="tab-button" data-tab="tab-cover-letter">
+                        <i class="fas fa-envelope-open-text"></i> AI Cover Letter
+                    </button>
+                </div>
 
-                    <!-- Experience -->
-                    <div class="result-card experience">
-                        <div class="card-header">
-                            <i class="fas fa-briefcase"></i>
-                            <h3>Experience</h3>
+                <!-- TAB 1: Parsed Profile Overview -->
+                <div class="tab-content-panel active" id="tab-overview">
+                    <div class="results-grid">
+                        <!-- Personal Information -->
+                        <div class="result-card personal-info">
+                            <div class="card-header">
+                                <i class="fas fa-user"></i>
+                                <h3>Personal Information</h3>
+                            </div>
+                            <div class="card-content" id="personalInfo"></div>
                         </div>
-                        <div class="card-content" id="experience"></div>
-                    </div>
 
-                    <!-- Education -->
-                    <div class="result-card education">
-                        <div class="card-header">
-                            <i class="fas fa-graduation-cap"></i>
-                            <h3>Education</h3>
+                        <!-- Experience -->
+                        <div class="result-card experience">
+                            <div class="card-header">
+                                <i class="fas fa-briefcase"></i>
+                                <h3>Experience</h3>
+                            </div>
+                            <div class="card-content" id="experience"></div>
                         </div>
-                        <div class="card-content" id="education"></div>
-                    </div>
 
-                    <!-- Skills -->
-                    <div class="result-card skills">
-                        <div class="card-header">
-                            <i class="fas fa-tools"></i>
-                            <h3>Skills</h3>
+                        <!-- Projects -->
+                        <div class="result-card projects-card" id="projectsCard" style="display: none;">
+                            <div class="card-header">
+                                <i class="fas fa-laptop-code"></i>
+                                <h3>Projects</h3>
+                            </div>
+                            <div class="card-content" id="projectsContent"></div>
                         </div>
-                        <div class="card-content" id="skills"></div>
-                    </div>
 
-                    <!-- Summary -->
-                    <div class="result-card summary">
-                        <div class="card-header">
-                            <i class="fas fa-file-alt"></i>
-                            <h3>Summary</h3>
+                        <!-- Education -->
+                        <div class="result-card education">
+                            <div class="card-header">
+                                <i class="fas fa-graduation-cap"></i>
+                                <h3>Education</h3>
+                            </div>
+                            <div class="card-content" id="education"></div>
                         </div>
-                        <div class="card-content" id="summary"></div>
-                    </div>
 
-                    <!-- Metadata -->
-                    <div class="result-card metadata">
-                        <div class="card-header">
-                            <i class="fas fa-info-circle"></i>
-                            <h3>Processing Info</h3>
+                        <!-- Skills -->
+                        <div class="result-card skills">
+                            <div class="card-header">
+                                <i class="fas fa-tools"></i>
+                                <h3>Skills</h3>
+                            </div>
+                            <div class="card-content" id="skills"></div>
                         </div>
-                        <div class="card-content" id="metadata"></div>
+
+                        <!-- Summary -->
+                        <div class="result-card summary">
+                            <div class="card-header">
+                                <i class="fas fa-file-alt"></i>
+                                <h3>Summary</h3>
+                            </div>
+                            <div class="card-content" id="summary"></div>
+                        </div>
+
+                        <!-- Metadata -->
+                        <div class="result-card metadata">
+                            <div class="card-header">
+                                <i class="fas fa-info-circle"></i>
+                                <h3>Processing Info</h3>
+                            </div>
+                            <div class="card-content" id="metadata"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 2: ATS Score & Audit -->
+                <div class="tab-content-panel" id="tab-ats">
+                    <div class="ats-dashboard" id="atsDashboard">
+                        <div class="ats-overview-row">
+                            <div class="ats-score-card">
+                                <h3>Overall ATS Score</h3>
+                                <div class="score-circle-wrapper">
+                                    <div class="score-value" id="atsScoreValue">--</div>
+                                    <div class="score-label" id="atsGradeLabel">Audit Pending</div>
+                                </div>
+                            </div>
+                            <div class="ats-breakdown-card">
+                                <h3>Category Breakdown</h3>
+                                <div class="category-bars" id="atsCategoryBars">
+                                    <div class="cat-bar-item">
+                                        <div class="cat-info"><span>Format & Structure</span><strong id="catFormatScore">--%</strong></div>
+                                        <div class="bar-bg"><div class="bar-fill" id="catFormatBar" style="width: 0%;"></div></div>
+                                    </div>
+                                    <div class="cat-bar-item">
+                                        <div class="cat-info"><span>Quantified Impact</span><strong id="catImpactScore">--%</strong></div>
+                                        <div class="bar-bg"><div class="bar-fill" id="catImpactBar" style="width: 0%;"></div></div>
+                                    </div>
+                                    <div class="cat-bar-item">
+                                        <div class="cat-info"><span>Keyword Density</span><strong id="catKeywordScore">--%</strong></div>
+                                        <div class="bar-bg"><div class="bar-fill" id="catKeywordBar" style="width: 0%;"></div></div>
+                                    </div>
+                                    <div class="cat-bar-item">
+                                        <div class="cat-info"><span>Completeness</span><strong id="catCompleteScore">--%</strong></div>
+                                        <div class="bar-bg"><div class="bar-fill" id="catCompleteBar" style="width: 0%;"></div></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="ats-details-grid">
+                            <div class="ats-detail-box strengths-box">
+                                <h4><i class="fas fa-check-circle text-success"></i> Strengths</h4>
+                                <ul id="atsStrengthsList"></ul>
+                            </div>
+                            <div class="ats-detail-box red-flags-box">
+                                <h4><i class="fas fa-exclamation-triangle text-warning"></i> Red Flags & Warnings</h4>
+                                <ul id="atsRedFlagsList"></ul>
+                            </div>
+                            <div class="ats-detail-box recommendations-box">
+                                <h4><i class="fas fa-lightbulb text-primary"></i> Actionable Improvements</h4>
+                                <ul id="atsRecommendationsList"></ul>
+                            </div>
+                            <div class="ats-detail-box verbs-box">
+                                <h4><i class="fas fa-bolt text-accent"></i> Action Verbs Analysis</h4>
+                                <div id="atsVerbsContent"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 3: Job Match & Gap Analyzer -->
+                <div class="tab-content-panel" id="tab-job-match">
+                    <div class="job-match-container">
+                        <div class="match-input-card">
+                            <h3><i class="fas fa-file-invoice"></i> Target Job Description</h3>
+                            <p style="color: var(--text-secondary); margin-bottom: 0.8rem;">
+                                Paste the job description you're applying for. Google Gemini will analyze skill alignment, detect missing requirements, and formulate interview preparation questions.
+                            </p>
+                            <input type="text" id="targetJobTitle" class="custom-input" placeholder="Target Job Title (e.g. Senior Backend Engineer)" style="margin-bottom: 0.8rem;" />
+                            <textarea id="targetJobDesc" class="custom-textarea" rows="6" placeholder="Paste the full job description here..."></textarea>
+                            <button class="upload-btn" id="runJobMatchBtn" style="margin-top: 1rem; width: auto; padding: 0.75rem 1.8rem;">
+                                <i class="fas fa-search"></i> <span id="matchBtnText">Analyze Job Fit with Gemini</span>
+                            </button>
+                        </div>
+
+                        <div class="match-results-card" id="matchResultsCard" style="display: none; margin-top: 1.5rem;">
+                            <div class="match-score-banner">
+                                <div class="match-percent" id="matchPercentDisplay">0%</div>
+                                <div>
+                                    <h3 id="matchVerdictTitle">Match Analysis</h3>
+                                    <p id="matchSummaryText" style="color: var(--text-secondary);"></p>
+                                </div>
+                            </div>
+                            <div class="match-columns">
+                                <div class="match-col">
+                                    <h4><i class="fas fa-check text-success"></i> Matching Skills</h4>
+                                    <div id="matchingSkillsTags" class="tag-cloud"></div>
+                                </div>
+                                <div class="match-col">
+                                    <h4><i class="fas fa-times-circle text-error"></i> Missing Skills & Gaps</h4>
+                                    <div id="missingSkillsTags" class="tag-cloud"></div>
+                                </div>
+                            </div>
+                            <div class="match-advice-box">
+                                <h4><i class="fas fa-pen-fancy"></i> Tailoring Advice</h4>
+                                <ul id="tailoringAdviceList"></ul>
+                            </div>
+                            <div class="match-interview-box">
+                                <h4><i class="fas fa-question-circle"></i> AI Interview Prep Questions</h4>
+                                <ul id="interviewPrepList"></ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 4: STAR Bullet Polisher -->
+                <div class="tab-content-panel" id="tab-bullets">
+                    <div class="bullet-polisher-container">
+                        <div class="polisher-header">
+                            <h3><i class="fas fa-magic"></i> Google XYZ & STAR Bullet Polisher</h3>
+                            <p style="color: var(--text-secondary);">
+                                Transform basic resume bullets into high-impact Google XYZ statements: <em>"Accomplished [X] as measured by [Y], by doing [Z]"</em>.
+                            </p>
+                        </div>
+                        <div class="bullet-list-wrapper" id="bulletListWrapper">
+                            <p class="empty-state-text">Parsing bullets from your experience...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 5: AI Cover Letter -->
+                <div class="tab-content-panel" id="tab-cover-letter">
+                    <div class="cover-letter-container">
+                        <div class="letter-inputs-card">
+                            <h3><i class="fas fa-envelope-open-text"></i> Instant Tailored Cover Letter</h3>
+                            <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+                                Gemini synthesizes your experience and projects into a persuasive, professional cover letter tailored for your target company.
+                            </p>
+                            <div class="grid-2-col">
+                                <input type="text" id="clJobTitle" class="custom-input" placeholder="Job Title (e.g. Full Stack Developer)" />
+                                <input type="text" id="clCompanyName" class="custom-input" placeholder="Company Name (e.g. Google)" />
+                            </div>
+                            <textarea id="clJobDesc" class="custom-textarea" rows="4" placeholder="Optional: Paste Job Description excerpt to boost personalization..." style="margin-top: 0.8rem;"></textarea>
+                            <button class="upload-btn" id="generateCoverLetterBtn" style="margin-top: 1rem; width: auto; padding: 0.75rem 1.8rem;">
+                                <i class="fas fa-paper-plane"></i> <span id="clBtnText">Generate Cover Letter</span>
+                            </button>
+                        </div>
+
+                        <div class="letter-output-card" id="letterOutputCard" style="display: none; margin-top: 1.5rem;">
+                            <div class="letter-header-actions">
+                                <h4>Generated Cover Letter</h4>
+                                <button class="btn-secondary" id="copyCoverLetterBtn"><i class="fas fa-copy"></i> Copy Letter</button>
+                            </div>
+                            <div class="cover-letter-body" id="coverLetterBody"></div>
+                        </div>
                     </div>
                 </div>
 

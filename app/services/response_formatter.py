@@ -93,8 +93,11 @@ class ResponseFormatter:
             "experience": experience,
             "education": education,
             "skills": skills,
+            "projects": parsed_data.get("projects", []),
             "certifications": certifications,
-            "aiEnhancements": ai_enhancements
+            "aiEnhancements": ai_enhancements,
+            "atsAudit": parsed_data.get("ats_audit"),
+            "poweredBy": parsed_data.get("powered_by", "Standard NLP")
         }
     
     @staticmethod
