@@ -2,32 +2,41 @@
 Database configuration and session management
 """
 import logging
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.exc import OperationalError
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-# Handle SQLite for development if needed
-if settings.DATABASE_URL.startswith("sqlite"):
-    engine = create_engine(
-        settings.DATABASE_URL,
-        connect_args={"check_same_thread": False}
-    )
-else:
-    engine = create_engine(
-        settings.DATABASE_URL,
-        pool_pre_ping=True,
-        pool_size=10,
-        max_overflow=20,
-        connect_args={"connect_timeout": 10}
-    )
-
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
 Base = declarative_base()
+
+def _create_engine():
+    """Create SQLAlchemy engine with error handling"""
+    url = settings.DATABASE_URL
+    try:
+        if url.startswith("sqlite"):
+            eng = create_engine(url, connect_args={"check_same_thread": False})
+        else:
+            eng = create_engine(
+                url,
+                pool_pre_ping=True,
+                pool_size=5,
+                max_overflow=10,
+                pool_timeout=30,
+                pool_recycle=1800,
+                connect_args={"connect_timeout": 10},
+            )
+        logger.info(f"Database engine created: {url[:30]}...")
+        return eng
+    except Exception as e:
+        logger.error(f"Failed to create DB engine: {e}")
+        # Fallback to in-memory SQLite so the app at least starts
+        logger.warning("Falling back to in-memory SQLite (no data persistence)")
+        return create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False})
+
+engine = _create_engine()
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
 def get_db():
@@ -37,4 +46,5 @@ def get_db():
         yield db
     finally:
         db.close()
+
 

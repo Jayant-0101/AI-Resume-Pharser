@@ -2,10 +2,11 @@
 Main FastAPI application entry point
 """
 import logging
-from fastapi import FastAPI
+import traceback
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from app.api.v1 import router as api_router
 from app.core.config import settings
 from app.core.logging_config import setup_logging
@@ -20,9 +21,7 @@ try:
     Base.metadata.create_all(bind=engine)
     logger.info("Database tables created/verified successfully")
 except Exception as e:
-    logger.warning(f"Could not create database tables: {str(e)}")
-    logger.warning("This is OK if tables already exist or database is not available yet")
-    # Continue anyway - tables will be created on first use
+    logger.warning(f"Could not create database tables: {str(e)} — continuing anyway")
 
 app = FastAPI(
     title="Intelligent Resume Parser API",
@@ -32,6 +31,25 @@ app = FastAPI(
     redoc_url="/redoc",
     openapi_url="/openapi.json"
 )
+
+# Global exception handler — returns JSON instead of Vercel's 500 page
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.error(f"Unhandled exception: {traceback.format_exc()}")
+    return JSONResponse(
+        status_code=500,
+        content={"error": str(exc), "type": type(exc).__name__}
+    )
+
+# Debug ping — always works, confirms function is alive
+@app.get("/ping")
+async def ping():
+    import os
+    return {
+        "status": "alive",
+        "db_url_set": bool(os.environ.get("DATABASE_URL")),
+        "gemini_key_set": bool(os.environ.get("GEMINI_API_KEY")),
+    }
 
 # Mount static files
 try:
