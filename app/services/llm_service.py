@@ -4,7 +4,12 @@ Provides context understanding, summarization, and intelligent analysis
 """
 import logging
 from typing import Dict, List, Optional, Any
-import torch
+
+try:
+    import torch
+    HAS_TORCH = True
+except ImportError:
+    HAS_TORCH = False
 
 logger = logging.getLogger(__name__)
 

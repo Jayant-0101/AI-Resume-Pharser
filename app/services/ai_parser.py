@@ -5,9 +5,20 @@ import re
 import logging
 from typing import Dict, List, Optional, Any
 from datetime import datetime
-import spacy
-from transformers import pipeline, AutoTokenizer, AutoModelForTokenClassification
-import torch
+# Optional heavy dependencies — not available on Vercel serverless
+try:
+    import spacy
+    HAS_SPACY = True
+except ImportError:
+    spacy = None
+    HAS_SPACY = False
+
+try:
+    from transformers import pipeline, AutoTokenizer, AutoModelForTokenClassification
+    import torch
+    HAS_TRANSFORMERS = True
+except ImportError:
+    HAS_TRANSFORMERS = False
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +36,9 @@ class AIParser:
     
     def _initialize_models(self):
         """Initialize NLP models"""
+        if not HAS_SPACY:
+            logger.warning("spaCy not available (serverless env) — using regex-only parsing")
+            return
         try:
             # Load spaCy model
             try:
@@ -37,23 +51,22 @@ class AIParser:
                 subprocess.check_call([sys.executable, "-m", "spacy", "download", "en_core_web_sm"])
                 self.nlp = spacy.load("en_core_web_sm")
             
-            # Load NER model (using a lightweight model for efficiency)
-            # This is optional - we'll use spaCy if this fails
-            try:
-                model_name = "dslim/bert-base-NER"
-                self.tokenizer = AutoTokenizer.from_pretrained(model_name)
-                self.ner_model = AutoModelForTokenClassification.from_pretrained(model_name)
-                logger.info("NER model loaded successfully")
-            except Exception as e:
-                logger.warning(f"Could not load NER model: {str(e)}, using spaCy only")
-                self.ner_model = None
-                self.tokenizer = None
+            # Load NER model — optional
+            if HAS_TRANSFORMERS:
+                try:
+                    model_name = "dslim/bert-base-NER"
+                    self.tokenizer = AutoTokenizer.from_pretrained(model_name)
+                    self.ner_model = AutoModelForTokenClassification.from_pretrained(model_name)
+                    logger.info("NER model loaded successfully")
+                except Exception as e:
+                    logger.warning(f"Could not load NER model: {str(e)}, using spaCy only")
+                    self.ner_model = None
+                    self.tokenizer = None
             
             self._models_initialized = True
                 
         except Exception as e:
             logger.error(f"Error initializing models: {str(e)}")
-            # Don't raise - allow graceful degradation
             if not self.nlp:
                 logger.warning("Running without NLP models - accuracy may be reduced")
     
