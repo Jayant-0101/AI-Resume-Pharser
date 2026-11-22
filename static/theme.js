@@ -7,8 +7,8 @@
     const themeIcon = document.getElementById('themeIcon');
     const body = document.body;
 
-    // Check for saved theme preference or default to dark mode
-    const savedTheme = localStorage.getItem('theme') || 'dark';
+    // Check for saved theme preference or default to light mode (clean pastel aesthetic)
+    const savedTheme = localStorage.getItem('theme') || 'light';
     
     // Apply saved theme
     if (savedTheme === 'light') {
@@ -16,6 +16,12 @@
         if (themeIcon) {
             themeIcon.classList.remove('fa-moon');
             themeIcon.classList.add('fa-sun');
+        }
+    } else {
+        body.classList.remove('light-mode');
+        if (themeIcon) {
+            themeIcon.classList.remove('fa-sun');
+            themeIcon.classList.add('fa-moon');
         }
     }
 
